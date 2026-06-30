@@ -28,6 +28,28 @@ public:
 
     ~LRU() = default;
 
+    LRU &operator=(const LRU &other) {
+        if (this == &other) {
+            return *this;
+        }
+        max_size_ = other.max_size_;
+        size_ = other.size_;
+        nodes_ = other.nodes_;
+        map_ = other.map_;
+        return *this;
+    }
+
+    LRU &operator=(LRU &&other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+        max_size_ = other.max_size_;
+        size_ = other.size_;
+        nodes_ = other.nodes_;
+        map_ = other.map_;
+        return *this;
+    }
+
     void put(K key, V value) {
         // TODO: overwriting the kv seems expensive. How should we handle this?
         if (map_.contains(key)) {

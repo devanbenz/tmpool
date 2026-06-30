@@ -12,10 +12,11 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_library(tmpool STATIC library.cpp
+add_library(tmpool STATIC
         lru.h
         btree.h
-        cache.h)
+        cache.h
+        tmpool.cpp)
 
 enable_testing()
 
