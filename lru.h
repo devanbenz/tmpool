@@ -1,6 +1,7 @@
 #pragma once
-#include <deque>
+#include <forward_list>
 #include <iostream>
+#include <list>
 #include <optional>
 #include <unordered_map>
 
@@ -51,41 +52,50 @@ public:
     }
 
     void put(K key, V value) {
-        // TODO: overwriting the kv seems expensive. How should we handle this?
-        if (map_.contains(key)) {
-            nodes_.erase(std::find(nodes_.begin(), nodes_.end(), key));
-            map_.erase(key);
-            nodes_.emplace_front(key);
-            map_.emplace(key, value);
+        if (auto it = map_.find(key); it != map_.end()) {
+            it->second->second = value;
+            nodes_.splice(nodes_.begin(), nodes_, it->second);
             return;
         }
         if (size_ + 1 > max_size_) {
-            map_.erase(nodes_.back());
+            map_.erase(nodes_.back().first);
             nodes_.pop_back();
-            map_.emplace(key, value);
-            nodes_.emplace_front(key);
-        } else {
-            size_++;
-            map_.emplace(key, value);
-            nodes_.emplace_front(key);
+            size_ -= 1;
         }
+        nodes_.push_front(std::make_pair(key, value));
+        map_[key] = nodes_.begin();
+        size_ += 1;
+    }
+
+    std::optional<V> back() {
+        if (nodes_.empty()) {
+            return std::nullopt;
+        }
+        return std::optional<V>(nodes_.back().second);
     }
 
     std::optional<V> get(K key) {
-        if (!map_.contains(key)) {
+        auto it = map_.find(key);
+        if (it == map_.end()) {
             return std::nullopt;
         }
+        nodes_.splice(nodes_.begin(), nodes_, it->second);
+        return std::optional<V>(it->second->second);
+    }
 
-        if (nodes_.back() == key) {
-            nodes_.pop_back();
-            nodes_.emplace_front(key);
-        }
-        return std::optional<V>(map_.at(key));
+
+    [[nodiscard]] bool empty() const {
+        return size_ == 0;
+    }
+
+    [[nodiscard]] int size() const {
+        return size_;
     }
 
 private:
-    std::deque<K> nodes_{};
-    std::unordered_map<K, V> map_{};
+    std::list<std::pair<K, V> > nodes_{};
+    // Where K is the key, int is the index in the list
+    std::unordered_map<K, typename std::list<std::pair<K, V> >::iterator> map_{};
     int size_{};
     int max_size_{};
 };

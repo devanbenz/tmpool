@@ -93,12 +93,23 @@ private:
     int max_bytes_size_{};
 };
 
+class DiskManager {
+public:
+    DiskManager() = default;
+
+    ~DiskManager() = default;
+
+private:
+};
+
 class Cache {
 public:
-    Cache() : pages_(DEFAULT_PAGES), page_size_(DEFAULT_PAGE_SIZE) {
+    explicit Cache(const DiskManager dm) : disk_manager_(dm), pages_(DEFAULT_PAGES),
+                                           page_size_(DEFAULT_PAGE_SIZE), capacity_(DEFAULT_PAGES) {
     }
 
-    explicit Cache(const int page_size, const int pages) : pages_(pages), page_size_(page_size) {
+    explicit Cache(const int page_size, const int pages, const DiskManager dm) : disk_manager_(dm), pages_(pages),
+        page_size_(page_size), capacity_(pages) {
     }
 
     ~Cache() = default;
@@ -111,6 +122,15 @@ public:
 
     void add_page(Page *page) {
         size_ += 1;
+        if (size_ > capacity_) {
+            if (auto evictable_page = pages_.back();
+                evictable_page.has_value() && !evictable_page.value()->is_pinned() && !evictable_page.value()->
+                is_dirty()) {
+                pages_.put(page->pid(), page);
+                size_ -= 1;
+                return;
+            }
+        }
         // TODO: Right now my LRU automatically evicts pages when it's full.
         // That's not good! I need to implement a policy to evict pages based on Page
         // semantics such as pinned status and dirty status.
@@ -118,7 +138,9 @@ public:
     }
 
 private:
+    DiskManager disk_manager_;
     LRU<int, Page *> pages_;
     int page_size_{};
     int size_{};
+    int capacity_{};
 };
